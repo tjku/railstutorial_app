@@ -36,7 +36,7 @@ describe "User pages" do
         fill_in "Name", with: "Example User"
         fill_in "Email", with: "user@example.com"
         fill_in "Password", with: "foobar"
-        fill_in "Confirmation", with: "foobar"
+        fill_in "Confirm Password", with: "foobar"
       end
 
       it "should create a user" do
@@ -50,6 +50,28 @@ describe "User pages" do
         it { should have_link("Sign out") }
         it { should have_title(user.name) }
         it { should have_selector("div.alert.alert-success", text: "Welcome") }
+
+        describe "when attempting to another sign up" do
+          before { sign_in user, no_capybara: true }
+
+          describe "by submitting GET request to Users#new controller" do
+            before { get signup_path }
+
+            it { should_not have_title("Sign up") }
+            specify { expect(response).to redirect_to(root_url) }
+          end
+
+          describe "by submitting POST request to Users#create controller" do
+            let(:params) do
+              { user: { name: user.name, email: user.email,
+                        password: user.password, password_confirmation: user.password }
+              }
+            end
+            before { post users_path, params }
+
+            specify { expect(response).to redirect_to(root_url) }
+          end
+        end
       end
     end
   end
@@ -72,6 +94,19 @@ describe "User pages" do
     describe "page" do
       it { should have_content("Update your profile") }
       it { should have_title("Edit user") }
+    end
+
+    describe "forbidden attributes" do
+      let(:params) do
+        { user: { admin: true, password: user.password,
+                  password_confirmation: user.password } }
+      end
+      before do
+        sign_in user, no_capybara: true
+        patch user_path(user), params
+      end
+
+      specify { expect(user.reload).not_to be_admin }
     end
 
     describe "with invalid information" do
@@ -127,7 +162,7 @@ describe "User pages" do
           expect(page).to have_selector("li", text: user.name)
         end
       end
-    end
+    end # pagination
 
     describe "delete links" do
       it { should_not have_link("delete") }
@@ -145,10 +180,21 @@ describe "User pages" do
             click_link("delete", match: :first) # we don't care which one link will be clicked
           end.to change(User, :count).by(-1)
         end
-        it { should_not have_link("delete", href: user_path(admin)) }
-      end
-    end
-  end
+
+        describe "should not be able to delete himself" do
+          it { should_not have_link("delete", href: user_path(admin)) }
+
+          describe "by submitting DELETE request to the Users#destroy controller" do
+            # I don't know, why admin must sign in again, this time without Capybara.
+            # I assume, because this is "controller spec", not integration test.
+            before { sign_in admin, no_capybara: true }
+
+            specify { expect { delete user_path(admin) }.not_to change(User, :count) }
+          end
+        end
+      end # as an admin user
+    end # delete links
+  end # index
 
 end
 
