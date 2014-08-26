@@ -1,5 +1,5 @@
 <li>
-  <%= image_tag "rails.png", alt: "Avatar" %>
+  <%= image_tag "rails.png", size: "52", alt: "Avatar", class: "gravatar" %>
   <%= link_to user.name, user %>
   <% if current_user.admin? and not current_user?(user) %>
     | <%= link_to "delete", user, method: :delete,

@@ -5,7 +5,15 @@ class User < ActiveRecord::Base
 
 
   has_many :microposts, dependent: :destroy
-
+  has_many :relationships, foreign_key: "follower_id",
+                           dependent: :destroy
+  has_many :followed_users, through: :relationships,
+                            source: :followed # necessary, because `followed_users` and `followed` are incompatible
+  has_many :reverse_relationships, foreign_key: "followed_id",
+                                   class_name: "Relationship", # necessary, because by default Rails will be searching for `ReverseRelationship` table
+				   dependent: :destroy
+  has_many :followers, through: :reverse_relationships,
+                       source: :follower # in this case `source` can be ommited (`followers` search for `follower` by default)
 
   has_secure_password
 
@@ -22,7 +30,19 @@ class User < ActiveRecord::Base
 
 
   def feed
-    Micropost.where("user_id = ?", self.id)
+    Micropost.from_users_followed_by(self)
+  end
+
+  def following?(other_user)
+    self.relationships.find_by(followed_id: other_user.id)
+  end
+
+  def follow!(other_user)
+    self.relationships.create!(followed_id: other_user.id)
+  end
+
+  def unfollow!(other_user)
+    self.relationships.find_by(followed_id: other_user.id).destroy
   end
 
   def self.new_remember_token

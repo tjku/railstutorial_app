@@ -3,14 +3,23 @@
 <div class="row">
   <aside class="span4">
     <section>
-      <h1>
-        <%= image_tag 'rails.png', alt: @user.name, class: "gravatar" %>
-        <%= @user.name %>
-      </h1>
+      <%= link_to image_tag("rails.png", size: "52", alt: "Avatar", class: "gravatar"), @user %>
+      <h1><%= @user.name %></h1>
+      <span>
+        <%= link_to "view my profile", @user %>
+      </span>
+      <span>
+        <%= pluralize(@user.microposts.count, "micropost") %>
+      </span>
+    </section>
+    <section>
+      <%= render 'shared/stats' %>
     </section>
   </aside>
 
   <div class="span8">
+    <%= render 'follow_form' if signed_in? %>
+
     <% if @user.microposts.any? %>
       <h3>Microposts (<%= @user.microposts.count %>)</h3>
       <ol class="microposts">
